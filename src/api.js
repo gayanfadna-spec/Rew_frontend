@@ -1,8 +1,14 @@
 import axios from 'axios';
 
+// const api = axios.create({
+//     baseURL: 'http://localhost:5000/api',
+// });
+
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api',
+    baseURL: import.meta.env.VITE_BACKEND_URL,
 });
+
+
 
 // Add a request interceptor to add the auth token
 api.interceptors.request.use(
