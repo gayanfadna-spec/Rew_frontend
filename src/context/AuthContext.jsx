@@ -1,6 +1,23 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../api';
 
+useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+
+    console.log("RESTORE AUTH:", { token, userData });
+
+    if (token && userData) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(JSON.parse(userData));
+    }
+
+    setLoading(false);
+}, []);
+
+
+
+
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);

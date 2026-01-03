@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Login from './pages/Login';
@@ -7,11 +7,25 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
 
+// const ProtectedRoute = ({ children }) => {
+//   const { user } = useAuth();
+//   if (!user) return <Navigate to="/login" />;
+//   return children;
+// };
 const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/login" />;
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div style={{ color: "white", textAlign: "center" }}>Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
   return children;
 };
+
 
 const AdminRoute = ({ children }) => {
   const { user } = useAuth();
