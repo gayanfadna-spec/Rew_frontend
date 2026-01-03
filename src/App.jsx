@@ -7,24 +7,12 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
 
-// const ProtectedRoute = ({ children }) => {
-//   const { user } = useAuth();
-//   if (!user) return <Navigate to="/login" />;
-//   return children;
-// };
 const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <div style={{ color: "white", textAlign: "center" }}>Loading...</div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" />;
   return children;
 };
+
 
 
 const AdminRoute = ({ children }) => {
