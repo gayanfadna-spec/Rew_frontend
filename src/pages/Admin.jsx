@@ -12,6 +12,10 @@ const Admin = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [verifyUsername, setVerifyUsername] = useState('');
     const [verifyPassword, setVerifyPassword] = useState('');
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editUser, setEditUser] = useState({ id: '', name: '', username: '', email: '', role: 'employee', password: '' });
+    const [showEmployees, setShowEmployees] = useState(false); // Default minimized
+    const [filterStatus, setFilterStatus] = useState('All');
 
     const navigate = useNavigate();
 
@@ -57,18 +61,36 @@ const Admin = () => {
                 data = data.filter(t => t.sender_id == selectedUser || t.receiver_id == selectedUser);
             }
 
-            // Convert to CSV
-            const headers = ['ID', 'Title', 'Description', 'Status', 'Sender', 'Receiver', 'Created At', 'Completed At', 'Subtasks'];
+            const headers = ['ID', 'Title', 'Description', 'Status', 'Sender', 'Receiver', 'Created At', 'Completed At', 'Subtasks', 'Subtask Completed Dates'];
             const csvContent = [
                 headers.join(','),
                 ...data.map(t => {
-                    // Parse and format subtasks
+                    // Parse subtasks
                     let subtasksStr = '';
+                    let subtaskDatesStr = '';
                     try {
                         const sub = Array.isArray(t.subtasks) ? t.subtasks : JSON.parse(t.subtasks || '[]');
-                        subtasksStr = sub.map(s => `${s.title} (${s.isCompleted ? 'Done' : 'Pending'})`).join(' | ');
+
+                        // Main Subtasks Column
+                        subtasksStr = sub.map(s => {
+                            let details = s.title;
+                            if (s.due_date) details += ` [Due: ${new Date(s.due_date).toLocaleDateString()}]`;
+                            if (s.status === 'Completed' && s.completed_at) details += ` [Completed: ${new Date(s.completed_at).toLocaleDateString()}]`;
+                            details += ` (${s.status})`;
+                            return details;
+                        }).join(' | ');
+
+                        // Dedicated Dates Column
+                        subtaskDatesStr = sub.map(s => {
+                            if (s.status === 'Completed' && s.completed_at) {
+                                return `${s.title}: ${new Date(s.completed_at).toLocaleDateString()}`;
+                            }
+                            return null;
+                        }).filter(Boolean).join(' | ');
+
                     } catch (e) {
                         subtasksStr = '';
+                        subtaskDatesStr = '';
                     }
 
                     return [
@@ -80,7 +102,8 @@ const Admin = () => {
                         `"${(t.receiver_name || 'Unknown').replace(/"/g, '""')}"`,
                         t.created_at,
                         t.completed_at || '',
-                        `"${subtasksStr.replace(/"/g, '""')}"`
+                        `"${subtasksStr.replace(/"/g, '""')}"`,
+                        `"${subtaskDatesStr.replace(/"/g, '""')}"`
                     ].join(',');
                 })
             ].join('\n');
@@ -124,6 +147,30 @@ const Admin = () => {
         }
     };
 
+    const handleEditUser = (user) => {
+        setEditUser({ ...user, password: '' });
+        setShowEditModal(true);
+    };
+
+    const handleUpdateUser = async (e) => {
+        e.preventDefault();
+        console.log("Updating user:", editUser); // Debug log
+        if (!editUser.id) {
+            alert("Error: User ID is missing");
+            return;
+        }
+        try {
+            const res = await api.put(`/users/${editUser.id}`, editUser);
+            // Update local state
+            setUsers(users.map(u => u.id === editUser.id ? { ...u, ...res.data.user } : u));
+            setShowEditModal(false);
+            alert('User updated successfully');
+        } catch (err) {
+            console.error('Failed to update user', err);
+            alert(err.response?.data?.error || 'Failed to update user');
+        }
+    };
+
     return (
         <div className="container" style={{ paddingBottom: '50px' }}>
             <div className="glass-panel" style={{ padding: '20px', marginTop: '30px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -139,43 +186,66 @@ const Admin = () => {
 
             {/* Manage Users Section */}
             <div className="glass-panel" style={{ padding: '20px', marginBottom: '30px' }}>
-                <h3 style={{ marginBottom: '15px' }}>Manage Employees</h3>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
-                                <th style={{ textAlign: 'left', padding: '10px' }}>Name</th>
-                                <th style={{ textAlign: 'left', padding: '10px' }}>Role</th>
-                                <th style={{ textAlign: 'right', padding: '10px' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users.map(u => (
-                                <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <td style={{ padding: '10px' }}>{u.name}</td>
-                                    <td style={{ padding: '10px' }}>{u.role}</td>
-                                    <td style={{ padding: '10px', textAlign: 'right' }}>
-                                        <button
-                                            onClick={() => handleDeleteUser(u.id, u.name)}
-                                            style={{
-                                                background: '#e74c3c',
-                                                border: 'none',
-                                                color: 'white',
-                                                padding: '5px 10px',
-                                                borderRadius: '5px',
-                                                cursor: 'pointer',
-                                                opacity: u.role === 'admin' ? 0.5 : 1
-                                            }}
-                                            disabled={u.role === 'admin'} // Disable simple delete for admins to be safe, or just self
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: showEmployees ? '15px' : '0' }}
+                    onClick={() => setShowEmployees(!showEmployees)}
+                >
+                    <h3 style={{ margin: 0 }}>Manage Employees</h3>
+                    <span style={{ fontSize: '1.2rem' }}>{showEmployees ? '▲' : '▼'}</span>
                 </div>
+
+                {showEmployees && (
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
+                                    <th style={{ textAlign: 'left', padding: '10px' }}>Name</th>
+                                    <th style={{ textAlign: 'left', padding: '10px' }}>Role</th>
+                                    <th style={{ textAlign: 'right', padding: '10px' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {users.map(u => (
+                                    <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                                        <td style={{ padding: '10px' }}>{u.name}</td>
+                                        <td style={{ padding: '10px' }}>{u.role}</td>
+                                        <td style={{ padding: '10px', textAlign: 'right' }}>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleEditUser(u); }}
+                                                style={{
+                                                    background: '#3498db',
+                                                    border: 'none',
+                                                    color: 'white',
+                                                    padding: '5px 10px',
+                                                    borderRadius: '5px',
+                                                    cursor: 'pointer',
+                                                    marginRight: '5px'
+                                                }}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteUser(u.id, u.name); }}
+                                                style={{
+                                                    background: '#e74c3c',
+                                                    border: 'none',
+                                                    color: 'white',
+                                                    padding: '5px 10px',
+                                                    borderRadius: '5px',
+                                                    cursor: 'pointer',
+                                                    opacity: u.role === 'admin' ? 0.5 : 1
+                                                }}
+                                                disabled={u.role === 'admin'}
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             {/* Employee Tasks Section */}
@@ -195,6 +265,19 @@ const Admin = () => {
                             <option key={u.id} value={u.id} style={{ color: 'black' }}>{u.name} ({u.role})</option>
                         ))}
                     </select>
+
+                    <label style={{ marginLeft: '20px', marginRight: '10px' }}>Filter Status:</label>
+                    <select
+                        className="glass-input"
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        style={{ maxWidth: '200px' }}
+                    >
+                        <option value="All" style={{ color: 'black' }}>All Statuses</option>
+                        <option value="To-Do" style={{ color: 'black' }}>To-Do</option>
+                        <option value="In Progress" style={{ color: 'black' }}>In Progress</option>
+                        <option value="Completed" style={{ color: 'black' }}>Completed</option>
+                    </select>
                 </div>
 
                 {selectedUser && (
@@ -203,17 +286,17 @@ const Admin = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
                                 <div>
                                     <h4 style={{ marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>Received Tasks</h4>
-                                    {tasks.filter(t => t.receiver_id == selectedUser).map(t => (
+                                    {tasks.filter(t => (t.receiver_id == selectedUser) && (filterStatus === 'All' || t.status === filterStatus)).map(t => (
                                         <TaskCard key={t.id} task={t} isSent={false} onUpdate={() => fetchUserTasks(selectedUser)} />
                                     ))}
-                                    {tasks.filter(t => t.receiver_id == selectedUser).length === 0 && <p style={{ opacity: 0.5 }}>No received tasks.</p>}
+                                    {tasks.filter(t => (t.receiver_id == selectedUser) && (filterStatus === 'All' || t.status === filterStatus)).length === 0 && <p style={{ opacity: 0.5 }}>No received tasks.</p>}
                                 </div>
                                 <div>
                                     <h4 style={{ marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>Sent Tasks</h4>
-                                    {tasks.filter(t => t.sender_id == selectedUser).map(t => (
+                                    {tasks.filter(t => (t.sender_id == selectedUser) && (filterStatus === 'All' || t.status === filterStatus)).map(t => (
                                         <TaskCard key={t.id} task={t} isSent={true} onUpdate={() => fetchUserTasks(selectedUser)} />
                                     ))}
-                                    {tasks.filter(t => t.sender_id == selectedUser).length === 0 && <p style={{ opacity: 0.5 }}>No sent tasks.</p>}
+                                    {tasks.filter(t => (t.sender_id == selectedUser) && (filterStatus === 'All' || t.status === filterStatus)).length === 0 && <p style={{ opacity: 0.5 }}>No sent tasks.</p>}
                                 </div>
                             </div>
                         )}
@@ -266,6 +349,67 @@ const Admin = () => {
                 </div>
             )}
 
+            {/* Edit User Modal */}
+            {showEditModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+                }}>
+                    <div className="glass-panel" style={{ width: '400px', padding: '30px', position: 'relative' }}>
+                        <button onClick={() => setShowEditModal(false)} style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                        <h2 className="text-gradient" style={{ marginBottom: '20px' }}>Edit Employee</h2>
+                        <form onSubmit={handleUpdateUser}>
+                            <div style={{ marginBottom: '15px' }}>
+                                <input
+                                    className="glass-input"
+                                    placeholder="Name"
+                                    value={editUser.name}
+                                    onChange={e => setEditUser({ ...editUser, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div style={{ marginBottom: '15px' }}>
+                                <input
+                                    className="glass-input"
+                                    placeholder="Username"
+                                    value={editUser.username}
+                                    onChange={e => setEditUser({ ...editUser, username: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div style={{ marginBottom: '15px' }}>
+                                <input
+                                    className="glass-input"
+                                    placeholder="Email"
+                                    value={editUser.email || ''}
+                                    onChange={e => setEditUser({ ...editUser, email: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div style={{ marginBottom: '15px' }}>
+                                <select
+                                    className="glass-input"
+                                    value={editUser.role}
+                                    onChange={e => setEditUser({ ...editUser, role: e.target.value })}
+                                    style={{ color: 'black' }}
+                                >
+                                    <option value="employee">Employee</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div style={{ marginBottom: '15px' }}>
+                                <input
+                                    className="glass-input"
+                                    placeholder="New Password (optional)"
+                                    value={editUser.password}
+                                    onChange={e => setEditUser({ ...editUser, password: e.target.value })}
+                                />
+                            </div>
+                            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Update User</button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

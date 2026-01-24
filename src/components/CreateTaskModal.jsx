@@ -11,6 +11,7 @@ const CreateTaskModal = ({ onClose, onTaskCreated }) => {
     });
     const [subtasks, setSubtasks] = useState([]);
     const [currentSubtask, setCurrentSubtask] = useState('');
+    const [currentSubtaskDate, setCurrentSubtaskDate] = useState('');
 
     useEffect(() => {
         // Fetch potential assignees
@@ -19,8 +20,14 @@ const CreateTaskModal = ({ onClose, onTaskCreated }) => {
 
     const addSubtask = () => {
         if (!currentSubtask.trim()) return;
-        setSubtasks([...subtasks, { id: Date.now(), title: currentSubtask, status: 'To-Do' }]);
+        setSubtasks([...subtasks, {
+            id: Date.now(),
+            title: currentSubtask,
+            status: 'To-Do',
+            due_date: currentSubtaskDate || null
+        }]);
         setCurrentSubtask('');
+        setCurrentSubtaskDate('');
     };
 
     const removeSubtask = (index) => {
@@ -76,17 +83,26 @@ const CreateTaskModal = ({ onClose, onTaskCreated }) => {
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
                             <input
                                 className="glass-input"
-                                placeholder="Add subtask..."
                                 value={currentSubtask}
                                 onChange={e => setCurrentSubtask(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSubtask(); } }}
+                            />
+                            <input
+                                type="date"
+                                className="glass-input"
+                                style={{ width: '150px' }}
+                                value={currentSubtaskDate}
+                                onChange={e => setCurrentSubtaskDate(e.target.value)}
                             />
                             <button type="button" onClick={addSubtask} className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>+ Add</button>
                         </div>
                         <ul style={{ listStyle: 'none', padding: 0 }}>
                             {subtasks.map((st, index) => (
                                 <li key={index} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.1)', padding: '5px 10px', marginBottom: '5px', borderRadius: '5px' }}>
-                                    <span>{st.title}</span>
+                                    <span>
+                                        {st.title}
+                                        {st.due_date && <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginLeft: '10px' }}>({new Date(st.due_date).toLocaleDateString()})</span>}
+                                    </span>
                                     <span onClick={() => removeSubtask(index)} style={{ cursor: 'pointer', color: '#e74c3c' }}>&times;</span>
                                 </li>
                             ))}
@@ -95,7 +111,7 @@ const CreateTaskModal = ({ onClose, onTaskCreated }) => {
 
                     <div style={{ marginBottom: '20px' }}>
                         <label>Due Date</label>
-                        <input type="date" className="glass-input" value={formData.due_date} onChange={e => setFormData({ ...formData, due_date: e.target.value })} />
+                        <input type="date" className="glass-input" value={formData.due_date} onChange={e => setFormData({ ...formData, due_date: e.target.value })} required />
                     </div>
                     <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Send Task</button>
                 </form>

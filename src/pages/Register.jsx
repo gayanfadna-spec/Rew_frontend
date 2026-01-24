@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Register = () => {
-    const [userData, setUserData] = useState({ username: '', password: '', name: '', role: 'employee' });
+    const [userData, setUserData] = useState({ username: '', password: '', name: '', email: '', role: 'employee' });
     const [error, setError] = useState('');
     const { register } = useAuth();
     const navigate = useNavigate();
@@ -13,7 +13,7 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        const res = await register(userData.username, userData.password, userData.name, userData.role);
+        const res = await register(userData.username, userData.password, userData.name, userData.email);
         if (res.success) {
             navigate('/login');
         } else {
@@ -35,6 +35,9 @@ const Register = () => {
                     </div>
                     <div style={{ marginBottom: '15px' }}>
                         <input name="username" type="text" className="glass-input" placeholder="Username" onChange={handleChange} required />
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                        <input name="email" type="email" className="glass-input" placeholder="Email Address" onChange={handleChange} required />
                     </div>
                     <div style={{ marginBottom: '15px' }}>
                         <input name="password" type="password" className="glass-input" placeholder="Password" onChange={handleChange} required />
