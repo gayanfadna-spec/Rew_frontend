@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Register = () => {
-    const [userData, setUserData] = useState({ username: '', password: '', name: '', email: '', role: 'employee' });
+    const [userData, setUserData] = useState({ username: '', password: '', name: '', email: '', role: 'employee', department: 'Marketing' });
     const [error, setError] = useState('');
     const { register } = useAuth();
     const navigate = useNavigate();
@@ -13,7 +13,7 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        const res = await register(userData.username, userData.password, userData.name, userData.email);
+        const res = await register(userData.username, userData.password, userData.name, userData.email, userData.department);
         if (res.success) {
             navigate('/login');
         } else {
@@ -41,6 +41,14 @@ const Register = () => {
                     </div>
                     <div style={{ marginBottom: '15px' }}>
                         <input name="password" type="password" className="glass-input" placeholder="Password" onChange={handleChange} required />
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                        <select name="department" className="glass-input" onChange={handleChange} value={userData.department} style={{ color: 'black' }}>
+                            <option value="Marketing">Marketing</option>
+                            <option value="R&D">R&D</option>
+                            <option value="Production">Production</option>
+                            <option value="Finance">Finance</option>
+                        </select>
                     </div>
                     {/* Role selection removed - Defaults to Employee */}
                     <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Sign Up</button>

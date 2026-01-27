@@ -13,7 +13,8 @@ const Admin = () => {
     const [verifyUsername, setVerifyUsername] = useState('');
     const [verifyPassword, setVerifyPassword] = useState('');
     const [showEditModal, setShowEditModal] = useState(false);
-    const [editUser, setEditUser] = useState({ id: '', name: '', username: '', email: '', role: 'employee', password: '' });
+    const [editUser, setEditUser] = useState({ id: '', name: '', username: '', email: '', role: 'employee', password: '', department: 'Marketing' });
+    const [exportDepartment, setExportDepartment] = useState('All');
     const [showEmployees, setShowEmployees] = useState(false); // Default minimized
     const [filterStatus, setFilterStatus] = useState('All');
 
@@ -59,6 +60,12 @@ const Admin = () => {
             // Filter if user is selected
             if (selectedUser) {
                 data = data.filter(t => t.sender_id == selectedUser || t.receiver_id == selectedUser);
+            }
+
+            // Filter by Department
+            if (exportDepartment !== 'All') {
+                const deptUserIds = new Set(users.filter(u => u.department === exportDepartment).map(u => u.id));
+                data = data.filter(t => deptUserIds.has(t.sender_id) || deptUserIds.has(t.receiver_id));
             }
 
             const headers = ['ID', 'Title', 'Description', 'Status', 'Sender', 'Receiver', 'Created At', 'Completed At', 'Subtasks', 'Subtask Completed Dates'];
@@ -112,7 +119,7 @@ const Admin = () => {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `tasks_report_${selectedUser ? `user_${selectedUser}_` : ''}${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `tasks_report_${exportDepartment !== 'All' ? `${exportDepartment}_` : ''}${selectedUser ? `user_${selectedUser}_` : ''}${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
         } catch (err) {
             console.error('Export failed', err);
@@ -180,6 +187,18 @@ const Admin = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+                    <select
+                        className="glass-input"
+                        value={exportDepartment}
+                        onChange={(e) => setExportDepartment(e.target.value)}
+                        style={{ maxWidth: '150px', color: 'black', height: '35px', padding: '0 10px' }}
+                    >
+                        <option value="All">All Depts</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="R&D">R&D</option>
+                        <option value="Production">Production</option>
+                        <option value="Finance">Finance</option>
+                    </select>
                     <button className="btn btn-primary" onClick={handleExport}>Export CSV</button>
                 </div>
             </div>
@@ -200,6 +219,7 @@ const Admin = () => {
                             <thead>
                                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
                                     <th style={{ textAlign: 'left', padding: '10px' }}>Name</th>
+                                    <th style={{ textAlign: 'left', padding: '10px' }}>Department</th>
                                     <th style={{ textAlign: 'left', padding: '10px' }}>Role</th>
                                     <th style={{ textAlign: 'right', padding: '10px' }}>Actions</th>
                                 </tr>
@@ -208,6 +228,7 @@ const Admin = () => {
                                 {users.map(u => (
                                     <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                                         <td style={{ padding: '10px' }}>{u.name}</td>
+                                        <td style={{ padding: '10px' }}>{u.department || '-'}</td>
                                         <td style={{ padding: '10px' }}>{u.role}</td>
                                         <td style={{ padding: '10px', textAlign: 'right' }}>
                                             <button
@@ -395,6 +416,19 @@ const Admin = () => {
                                 >
                                     <option value="employee">Employee</option>
                                     <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div style={{ marginBottom: '15px' }}>
+                                <select
+                                    className="glass-input"
+                                    value={editUser.department || 'Marketing'}
+                                    onChange={e => setEditUser({ ...editUser, department: e.target.value })}
+                                    style={{ color: 'black' }}
+                                >
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="R&D">R&D</option>
+                                    <option value="Production">Production</option>
+                                    <option value="Finance">Finance</option>
                                 </select>
                             </div>
                             <div style={{ marginBottom: '15px' }}>
