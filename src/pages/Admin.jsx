@@ -54,8 +54,9 @@ const Admin = () => {
             let data = res.data;
 
             // Filter out tasks involving deleted users (both sender and receiver must be active)
-            const activeUserIds = new Set(users.map(u => u.id));
-            data = data.filter(t => activeUserIds.has(t.sender_id) && activeUserIds.has(t.receiver_id));
+            // const activeUserIds = new Set(users.map(u => u.id));
+            // data = data.filter(t => activeUserIds.has(t.sender_id) && activeUserIds.has(t.receiver_id));
+            // FIXED: Allow historical data even if users are deleted (backend handles names as 'Unknown')
 
             // Filter if user is selected
             if (selectedUser) {
@@ -64,11 +65,19 @@ const Admin = () => {
 
             // Filter by Department
             if (exportDepartment !== 'All') {
-                const deptUserIds = new Set(users.filter(u => u.department === exportDepartment).map(u => u.id));
-                data = data.filter(t => deptUserIds.has(t.sender_id) || deptUserIds.has(t.receiver_id));
+                console.log(`[DEBUG] Exporting for department: '${exportDepartment}'`);
+                // Filter tasks where either Sender or Receiver belongs to the selected Department
+                data = data.filter(t => {
+                    const match = (t.receiver_department === exportDepartment || t.sender_department === exportDepartment);
+                    if (!match) {
+                        // console.log(`[DEBUG] Task ${t.id} skipped. ReceiverDept: '${t.receiver_department}', SenderDept: '${t.sender_department}'`);
+                    }
+                    return match;
+                });
             }
+            console.log(`[DEBUG] Tasks to export: ${data.length}`);
 
-            const headers = ['ID', 'Title', 'Description', 'Status', 'Sender', 'Receiver', 'Created At', 'Completed At', 'Subtasks', 'Subtask Completed Dates'];
+            const headers = ['ID', 'Title', 'Description', 'Status', 'Sender', 'Receiver', 'Receiver Department', 'Created At', 'Completed At', 'Subtasks', 'Subtask Completed Dates'];
             const csvContent = [
                 headers.join(','),
                 ...data.map(t => {
@@ -107,6 +116,7 @@ const Admin = () => {
                         t.status,
                         `"${(t.sender_name || 'Unknown').replace(/"/g, '""')}"`,
                         `"${(t.receiver_name || 'Unknown').replace(/"/g, '""')}"`,
+                        `"${(t.receiver_department || 'Unknown').replace(/"/g, '""')}"`,
                         t.created_at,
                         t.completed_at || '',
                         `"${subtasksStr.replace(/"/g, '""')}"`,
