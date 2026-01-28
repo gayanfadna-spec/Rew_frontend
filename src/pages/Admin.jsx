@@ -17,6 +17,7 @@ const Admin = () => {
     const [exportDepartment, setExportDepartment] = useState('All');
     const [showEmployees, setShowEmployees] = useState(false); // Default minimized
     const [filterStatus, setFilterStatus] = useState('All');
+    const [employeeFilterDepartment, setEmployeeFilterDepartment] = useState('All');
 
     const navigate = useNavigate();
 
@@ -111,7 +112,7 @@ const Admin = () => {
 
                     return [
                         t.id,
-                        `"${(t.title || '').replace(/"/g, '""')}"`,
+                        `"${((t.title || '') + (t.due_date ? ` (Due: ${new Date(t.due_date).toLocaleDateString()})` : '')).replace(/"/g, '""')}"`,
                         `"${(t.description || '').replace(/"/g, '""')}"`,
                         t.status,
                         `"${(t.sender_name || 'Unknown').replace(/"/g, '""')}"`,
@@ -284,6 +285,20 @@ const Admin = () => {
                 <h3 style={{ marginBottom: '15px' }}>Employee Tasks</h3>
 
                 <div style={{ marginBottom: '20px' }}>
+                    <label style={{ marginRight: '10px' }}>Filter Dept:</label>
+                    <select
+                        className="glass-input"
+                        value={employeeFilterDepartment}
+                        onChange={(e) => { setEmployeeFilterDepartment(e.target.value); setSelectedUser(''); }}
+                        style={{ maxWidth: '150px', marginRight: '20px', color: 'black' }}
+                    >
+                        <option value="All">All</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="R&D">R&D</option>
+                        <option value="Production">Production</option>
+                        <option value="Finance">Finance</option>
+                    </select>
+
                     <label style={{ marginRight: '10px' }}>Select Employee:</label>
                     <select
                         className="glass-input"
@@ -292,7 +307,7 @@ const Admin = () => {
                         style={{ maxWidth: '300px' }}
                     >
                         <option value="" style={{ color: 'black' }}>-- Select Employee --</option>
-                        {users.map(u => (
+                        {users.filter(u => employeeFilterDepartment === 'All' || u.department === employeeFilterDepartment).map(u => (
                             <option key={u.id} value={u.id} style={{ color: 'black' }}>{u.name} ({u.role})</option>
                         ))}
                     </select>
