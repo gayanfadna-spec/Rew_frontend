@@ -90,10 +90,18 @@ const Dashboard = () => {
 
         // Search Filter
         if (searchQuery) {
-            const query = searchQuery.toLowerCase();
+            const terms = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+
             filtered = filtered.filter(t => {
                 const targetName = isSent ? (t.receiver_name || '') : (t.sender_name || '');
-                return targetName.toLowerCase().includes(query);
+                const title = t.title || '';
+
+                const nameLower = targetName.toLowerCase();
+                const titleLower = title.toLowerCase();
+
+                // Check if ALL terms match either the name OR the title
+                // This allows searching "John Report" to find tasks for John with "Report" in title
+                return terms.every(term => nameLower.includes(term) || titleLower.includes(term));
             });
         }
 
@@ -239,9 +247,9 @@ const Dashboard = () => {
                         {/* Search Input */}
                         <input
                             type="text"
-                            placeholder="Filter by Employee..."
+                            placeholder="Search by Task or Employee..."
                             className="glass-input"
-                            style={{ padding: '8px 12px', width: '200px' }}
+                            style={{ padding: '8px 12px', width: '220px' }}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />

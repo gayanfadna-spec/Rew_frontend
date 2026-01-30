@@ -18,6 +18,9 @@ const Admin = () => {
     const [showEmployees, setShowEmployees] = useState(false); // Default minimized
     const [filterStatus, setFilterStatus] = useState('All');
     const [employeeFilterDepartment, setEmployeeFilterDepartment] = useState('All');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     const navigate = useNavigate();
 
@@ -76,6 +79,19 @@ const Admin = () => {
                     return match;
                 });
             }
+
+            // Filter by Date Range (Created At)
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                data = data.filter(t => new Date(t.created_at) >= start);
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                data = data.filter(t => new Date(t.created_at) <= end);
+            }
+
             console.log(`[DEBUG] Tasks to export: ${data.length}`);
 
             const headers = ['ID', 'Title', 'Description', 'Status', 'Sender', 'Receiver', 'Receiver Department', 'Created At', 'Completed At', 'Subtasks', 'Subtask Completed Dates'];
@@ -198,6 +214,25 @@ const Admin = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginRight: '10px' }}>
+                        <input
+                            type="date"
+                            className="glass-input"
+                            style={{ height: '35px', color: 'black' }}
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            title="Start Date"
+                        />
+                        <span style={{ color: 'white' }}>-</span>
+                        <input
+                            type="date"
+                            className="glass-input"
+                            style={{ height: '35px', color: 'black' }}
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            title="End Date"
+                        />
+                    </div>
                     <select
                         className="glass-input"
                         value={exportDepartment}
@@ -284,46 +319,63 @@ const Admin = () => {
             <div className="glass-panel" style={{ padding: '20px', marginBottom: '30px' }}>
                 <h3 style={{ marginBottom: '15px' }}>Employee Tasks</h3>
 
-                <div style={{ marginBottom: '20px' }}>
-                    <label style={{ marginRight: '10px' }}>Filter Dept:</label>
-                    <select
-                        className="glass-input"
-                        value={employeeFilterDepartment}
-                        onChange={(e) => { setEmployeeFilterDepartment(e.target.value); setSelectedUser(''); }}
-                        style={{ maxWidth: '150px', marginRight: '20px', color: 'black' }}
-                    >
-                        <option value="All">All</option>
-                        <option value="Marketing">Marketing</option>
-                        <option value="R&D">R&D</option>
-                        <option value="Production">Production</option>
-                        <option value="Finance">Finance</option>
-                    </select>
+                <div style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '15px' }}>
+                    <div>
+                        <label style={{ marginRight: '10px' }}>Filter Dept:</label>
+                        <select
+                            className="glass-input"
+                            value={employeeFilterDepartment}
+                            onChange={(e) => { setEmployeeFilterDepartment(e.target.value); setSelectedUser(''); }}
+                            style={{ maxWidth: '150px', color: 'black' }}
+                        >
+                            <option value="All">All</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="R&D">R&D</option>
+                            <option value="Production">Production</option>
+                            <option value="Finance">Finance</option>
+                        </select>
+                    </div>
 
-                    <label style={{ marginRight: '10px' }}>Select Employee:</label>
-                    <select
-                        className="glass-input"
-                        value={selectedUser}
-                        onChange={(e) => setSelectedUser(e.target.value)}
-                        style={{ maxWidth: '300px' }}
-                    >
-                        <option value="" style={{ color: 'black' }}>-- Select Employee --</option>
-                        {users.filter(u => employeeFilterDepartment === 'All' || u.department === employeeFilterDepartment).map(u => (
-                            <option key={u.id} value={u.id} style={{ color: 'black' }}>{u.name} ({u.role})</option>
-                        ))}
-                    </select>
+                    <div>
+                        <label style={{ marginRight: '10px' }}>Select Employee:</label>
+                        <select
+                            className="glass-input"
+                            value={selectedUser}
+                            onChange={(e) => setSelectedUser(e.target.value)}
+                            style={{ maxWidth: '300px' }}
+                        >
+                            <option value="" style={{ color: 'black' }}>-- Select Employee --</option>
+                            {users.filter(u => employeeFilterDepartment === 'All' || u.department === employeeFilterDepartment).map(u => (
+                                <option key={u.id} value={u.id} style={{ color: 'black' }}>{u.name} ({u.role})</option>
+                            ))}
+                        </select>
+                    </div>
 
-                    <label style={{ marginLeft: '20px', marginRight: '10px' }}>Filter Status:</label>
-                    <select
-                        className="glass-input"
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        style={{ maxWidth: '200px' }}
-                    >
-                        <option value="All" style={{ color: 'black' }}>All Statuses</option>
-                        <option value="To-Do" style={{ color: 'black' }}>To-Do</option>
-                        <option value="In Progress" style={{ color: 'black' }}>In Progress</option>
-                        <option value="Completed" style={{ color: 'black' }}>Completed</option>
-                    </select>
+                    <div>
+                        <label style={{ marginRight: '10px' }}>Filter Status:</label>
+                        <select
+                            className="glass-input"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            style={{ maxWidth: '200px' }}
+                        >
+                            <option value="All" style={{ color: 'black' }}>All Statuses</option>
+                            <option value="To-Do" style={{ color: 'black' }}>To-Do</option>
+                            <option value="In Progress" style={{ color: 'black' }}>In Progress</option>
+                            <option value="Completed" style={{ color: 'black' }}>Completed</option>
+                        </select>
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: '200px' }}>
+                        <input
+                            type="text"
+                            className="glass-input"
+                            placeholder="Search tasks by name..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
                 </div>
 
                 {selectedUser && (
@@ -332,17 +384,33 @@ const Admin = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
                                 <div>
                                     <h4 style={{ marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>Received Tasks</h4>
-                                    {tasks.filter(t => (t.receiver_id == selectedUser) && (filterStatus === 'All' || t.status === filterStatus)).map(t => (
+                                    {tasks.filter(t =>
+                                        (t.receiver_id == selectedUser) &&
+                                        (filterStatus === 'All' || t.status === filterStatus) &&
+                                        (searchQuery === '' || t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                                    ).map(t => (
                                         <TaskCard key={t.id} task={t} isSent={false} onUpdate={() => fetchUserTasks(selectedUser)} />
                                     ))}
-                                    {tasks.filter(t => (t.receiver_id == selectedUser) && (filterStatus === 'All' || t.status === filterStatus)).length === 0 && <p style={{ opacity: 0.5 }}>No received tasks.</p>}
+                                    {tasks.filter(t =>
+                                        (t.receiver_id == selectedUser) &&
+                                        (filterStatus === 'All' || t.status === filterStatus) &&
+                                        (searchQuery === '' || t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                                    ).length === 0 && <p style={{ opacity: 0.5 }}>No received tasks.</p>}
                                 </div>
                                 <div>
                                     <h4 style={{ marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>Sent Tasks</h4>
-                                    {tasks.filter(t => (t.sender_id == selectedUser) && (filterStatus === 'All' || t.status === filterStatus)).map(t => (
+                                    {tasks.filter(t =>
+                                        (t.sender_id == selectedUser) &&
+                                        (filterStatus === 'All' || t.status === filterStatus) &&
+                                        (searchQuery === '' || t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                                    ).map(t => (
                                         <TaskCard key={t.id} task={t} isSent={true} onUpdate={() => fetchUserTasks(selectedUser)} />
                                     ))}
-                                    {tasks.filter(t => (t.sender_id == selectedUser) && (filterStatus === 'All' || t.status === filterStatus)).length === 0 && <p style={{ opacity: 0.5 }}>No sent tasks.</p>}
+                                    {tasks.filter(t =>
+                                        (t.sender_id == selectedUser) &&
+                                        (filterStatus === 'All' || t.status === filterStatus) &&
+                                        (searchQuery === '' || t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                                    ).length === 0 && <p style={{ opacity: 0.5 }}>No sent tasks.</p>}
                                 </div>
                             </div>
                         )}
